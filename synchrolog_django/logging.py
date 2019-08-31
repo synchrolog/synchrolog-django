@@ -1,13 +1,14 @@
 import logging
 import traceback
 from datetime import datetime
-from logging.handlers import QueueHandler, QueueListener
+from logging.handlers import QueueListener
 from queue import Queue
 from uuid import uuid4
 
 import requests
+from django.conf import settings
 
-from . import local
+from .threadlocal import local
 
 ANONYMOUS_KEY = 'synchrolog_anonymous_id'
 USER_KEY = 'synchrolog_user_id'
@@ -15,24 +16,7 @@ USER_KEY = 'synchrolog_user_id'
 queue = Queue()
 
 
-def setup_logging(level, access_token, use_queue):
-    handler = _RequestHandler(access_token)
-    handler.setLevel(level)
-
-    # we can add handlers to root handler, and it will be work, because by default Logger
-    # class contains variable `propagate` equal to True that will propagate record
-    # to parent logger handlers
-    logger = logging.root
-    logger.level = level
-    if use_queue:
-        queue_handler = QueueHandler(queue)
-        queue_handler.setLevel(level)
-        logger.addHandler(queue_handler)
-        listener = QueueListener(queue, handler)
-        listener.start()
-    else:
-        logger.addHandler(handler)
-
+def setup_logging():
     logging.setLogRecordFactory(_build_make_record_function())
 
 
@@ -71,24 +55,46 @@ def _generate_uuid():
     return str(uuid4())
 
 
-class _RequestHandler(logging.Handler):
+class RequestHandler(logging.Handler):
 
-    def __init__(self, access_token):
+    def __init__(self):
+        access_token = getattr(settings, 'SYNCHROLOG_API_KEY', None)
+        assert bool(access_token), 'Provide SYNCHROLOG_ACCESS_TOKEN variable in your settings.py'
         self.access_token = access_token
         super().__init__()
 
     def emit(self, record):
         """ Actually send synchrolog data to remote server """
         data = getattr(record, 'synchrolog', {})
+
         if not data:
             return
 
         url = data.pop('url', None)
+
         if not url:
             return
 
         headers = {'Authorization': f'Basic {self.access_token}'}
         response = requests.post(url=url, json=data, headers=headers)
+        if response.status_code >= 400:
+            print('Could not send logging info to synchrolog server\n\n', response.text)
+
+
+class QueueHandler(logging.Handler):
+
+    def __init__(self, level=logging.NOTSET):
+        self._handler = RequestHandler()
+
+        self._queue_handler = logging.handlers.QueueHandler(queue)
+        self._queue_handler.setLevel(level)
+
+        self._listener = QueueListener(queue, self._handler)
+        self._listener.start()
+        super().__init__(level)
+
+    def emit(self, record):
+        self._queue_handler.emit(record)
 
 
 def _synchrolog_record_factory(record):
@@ -159,4 +165,3 @@ def _synchrolog_record_factory(record):
 
     record.synchrolog = synchrolog
     return record
-
