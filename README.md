@@ -35,9 +35,8 @@ LOGGING = {
 ```
 
 ## Logger handlers
- - synchrolog_django.RequestHandler - handler that sends messages to Synchrolog server and wait when message will be delivered.
- - synchrolog_django.QueueHandler - handler that use queue and Request handler for sending logs in asynchronous way (without blocking request).
+ - synchrolog_django.RequestHandler - handler that sends messages to Synchrolog server and waits when the message will be delivered.
+ - synchrolog_django.QueueHandler - handler that uses queue and RequestHandler for sending logs in an asynchronous way (without blocking request).
 
 ## Note
-Such as Django doesn't raises errors, it's not possible to retrieve stacktrace of all 4xx errors, 
-but library catch unhandled exception and their stacktrace. 
+Such as Django doesn't raise errors, it's not possible to retrieve stacktrace of all 4xx errors, but library still catches the unhandled exception and their stacktrace.
