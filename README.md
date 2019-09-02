@@ -40,3 +40,12 @@ LOGGING = {
 
 ## Note
 Such as Django doesn't raise errors, it's not possible to retrieve stacktrace of all 4xx errors, but library still catches the unhandled exception and their stacktrace.
+
+
+## For running tests
+```bash
+python3 -m venv .env
+source .env/bin/activate
+pip install -r requirements.txt
+python -m unittest tests/test_handler.py tests/test_logging.py 
+```
