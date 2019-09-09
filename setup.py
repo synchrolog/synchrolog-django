@@ -8,5 +8,15 @@ setup(
     license='',
     author='',
     author_email='',
-    description='Django middleware that sends request logs to Synchrolog'
+    description='Django middleware that sends request logs to Synchrolog',
+    install_requires=[
+        'certifi',
+        'chardet',
+        'Django',
+        'idna',
+        'pytz',
+        'requests',
+        'sqlparse',
+        'urllib3',
+    ],
 )
