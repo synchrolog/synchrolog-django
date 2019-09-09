@@ -1,7 +1,7 @@
 # Synchrolog
 
 ## Installation
-`pip install git+https://github.com/synchrolog/synchrolog-django.git@master`
+`pip install -r git+https://github.com/synchrolog/synchrolog-django.git@master`
 
 ## Usage
 
