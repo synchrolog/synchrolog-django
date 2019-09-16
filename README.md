@@ -10,9 +10,9 @@ Add access token to your application config (`/yourproject/settings.py`)
 Add synchrolog middleware (`/yourproject/settings.py`)
 ```python
 MIDDLEWARE = [
-    # It MUST be the first middleware
+    ...,
+    # It MUST be the last middleware
     'synchrolog_django.middleware.SynchrologMiddleware',
-    ...
 ]
 
 SYNCHROLOG_API_KEY = os.getenv('SYNCHROLOG_API_KEY')
@@ -29,7 +29,9 @@ LOGGING = {
         # Add synchrolog handler to root or your own logger
         '': {
             'handlers': ['synchrolog'],
-        }
+        },
+        # Change default behaviour for ability to log all requests
+        'django.server': {'propagate': True},
     }
 
 ```
