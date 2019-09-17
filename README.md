@@ -10,9 +10,9 @@ Add access token to your application config (`/yourproject/settings.py`)
 Add synchrolog middleware (`/yourproject/settings.py`)
 ```python
 MIDDLEWARE = [
-    ...,
-    # It MUST be the last middleware
+    # It MUST be the first middleware
     'synchrolog_django.middleware.SynchrologMiddleware',
+    ...
 ]
 
 SYNCHROLOG_API_KEY = os.getenv('SYNCHROLOG_API_KEY')
@@ -30,8 +30,10 @@ LOGGING = {
         '': {
             'handlers': ['synchrolog'],
         },
-        # Change default behaviour for ability to log all requests
-        'django.server': {'propagate': True},
+        # Change default behaviour of django loggers, because their call made out side of middlewares that 
+        # we can not control. 
+        'django.server': {'level': 'CRITICAL'},
+        'django.request': {'level': 'CRITICAL'},
     }
 
 ```

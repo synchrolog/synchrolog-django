@@ -12,6 +12,8 @@ from .threadlocal import local
 
 ANONYMOUS_KEY = 'synchrolog_anonymous_id'
 USER_KEY = 'synchrolog_user_id'
+RAW_ANONYMOUS_KEY = 'synchrolog_anonymous_id_raw'
+
 
 queue = Queue()
 
@@ -66,7 +68,6 @@ class RequestHandler(logging.Handler):
     def emit(self, record):
         """ Actually send synchrolog data to remote server """
         data = getattr(record, 'synchrolog', {})
-
         if not data:
             return
 
@@ -103,6 +104,7 @@ def _synchrolog_record_factory(record):
         return record
 
     anonymous_id = request.COOKIES.get(ANONYMOUS_KEY, _generate_uuid())
+    request.COOKIES[RAW_ANONYMOUS_KEY] = anonymous_id
     user_id = request.COOKIES.get(USER_KEY)
 
     timestamp = datetime.now().isoformat()
@@ -165,3 +167,24 @@ def _synchrolog_record_factory(record):
 
     record.synchrolog = synchrolog
     return record
+
+
+def log_response(response, request, logger):
+    if getattr(response, '_has_been_logged', False):
+        return
+
+    if response.status_code >= 500:
+        level = 'error'
+    elif response.status_code >= 400:
+        level = 'warning'
+    else:
+        level = 'info'
+
+    getattr(logger, level)(
+        '%s: %s', response.reason_phrase, request.path,
+        extra={
+            'status_code': response.status_code,
+            'request': request,
+        },
+    )
+    response._has_been_logged = True
