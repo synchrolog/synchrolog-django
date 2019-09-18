@@ -105,11 +105,11 @@ def _synchrolog_record_factory(record):
 
     anonymous_id = request.COOKIES.get(ANONYMOUS_KEY, _generate_uuid())
     request.COOKIES[RAW_ANONYMOUS_KEY] = anonymous_id
-    user_id = request.COOKIES.get(USER_KEY)
+    user_id = request.COOKIES.get(USER_KEY) or ''
 
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+
     synchrolog = {
-        'event_type': 'log',
         'timestamp': timestamp,
         'anonymous_id': anonymous_id,
         'user_id': user_id,
@@ -121,6 +121,7 @@ def _synchrolog_record_factory(record):
     if record.levelno < logging.ERROR or not record.exc_info:
         synchrolog = {
             **synchrolog,
+            'event_type': 'log',
             'url': 'https://input.synchrolog.com/v1/track-backend',
             'log': {
                 'timestamp': timestamp,
@@ -150,6 +151,7 @@ def _synchrolog_record_factory(record):
         backtrace = ''.join(traceback.format_tb(tb))
         synchrolog = {
             **synchrolog,
+            'event_type': 'error',
             'url': 'https://input.synchrolog.com/v1/track-backend-error',
             'error': {
                 'status': str(getattr(exception, 'code', 500)),
