@@ -4,8 +4,10 @@ import logging.config
 import unittest
 from http.cookies import SimpleCookie
 from unittest import mock
+from unittest.mock import call
 
 from django.conf import settings
+from django.http import HttpResponse
 from django.test import override_settings, RequestFactory
 
 from synchrolog_django import SynchrologMiddleware
@@ -16,7 +18,9 @@ except RuntimeError:
     pass
 
 logger = logging.getLogger('test')
+middleware_logging = logging.getLogger('synchrolog.middleware')
 logger.setLevel(logging.DEBUG)
+middleware_logging.setLevel(logging.DEBUG)
 
 
 class Object:
@@ -32,6 +36,10 @@ LOGGING = {
     },
     'loggers': {
         'test': {
+            'handlers': ['synchrolog'],
+            'propagate': True,
+        },
+        'synchrolog.middleware': {
             'handlers': ['synchrolog'],
             'propagate': True,
         }
@@ -88,6 +96,7 @@ class MiddlewareMiddleware(unittest.TestCase):
     def test_logging_without_user_id(self, post_mock) -> None:
         def view(*args, **kwargs):
             logger.info('SOME MSG')
+            return HttpResponse()
 
         self.middleware.get_response = view
         factory = copy.deepcopy(self.factory)
@@ -96,15 +105,35 @@ class MiddlewareMiddleware(unittest.TestCase):
         self.middleware(request)
 
         post_mock.assert_called()
-        post_mock.assert_called_with(
-            headers={'Authorization': 'Basic 123'},
-            json={
-                'event_type': 'log', 'timestamp': mock.ANY,
-                'anonymous_id': mock.ANY, 'user_id': None,
-                'source': 'backend',
-                'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
-            },
-            url='https://input.synchrolog.com/v1/track-backend',
+        post_mock.assert_has_calls(
+            [
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'event_type': 'log', 'timestamp': mock.ANY,
+                        'anonymous_id': mock.ANY, 'user_id': None,
+                        'source': 'backend',
+                        'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend',
+                ),
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'timestamp': mock.ANY,
+                        'anonymous_id': mock.ANY,
+                        'user_id': None,
+                        'source': 'backend',
+                        'event_type': 'log',
+                        'log': {
+                            'timestamp': mock.ANY,
+                            'message': 'OK: /',
+                        },
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend'
+                )
+            ]
+
         )
         self.assertIsNotNone(post_mock.call_args[1]['json']['anonymous_id'])
 
@@ -112,6 +141,7 @@ class MiddlewareMiddleware(unittest.TestCase):
     def test_logging_with_user_id(self, post_mock) -> None:
         def view(*args, **kwargs):
             logger.info('SOME MSG')
+            return HttpResponse()
 
         self.middleware.get_response = view
 
@@ -119,15 +149,35 @@ class MiddlewareMiddleware(unittest.TestCase):
         self.middleware(request)
 
         post_mock.assert_called()
-        post_mock.assert_called_with(
-            headers={'Authorization': 'Basic 123'},
-            json={
-                'event_type': 'log', 'timestamp': mock.ANY,
-                'anonymous_id': '2', 'user_id': '1',
-                'source': 'backend',
-                'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
-            },
-            url='https://input.synchrolog.com/v1/track-backend',
+        post_mock.assert_has_calls(
+            [
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'event_type': 'log', 'timestamp': mock.ANY,
+                        'anonymous_id': '2', 'user_id': '1',
+                        'source': 'backend',
+                        'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend',
+                ),
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'timestamp': mock.ANY,
+                        'anonymous_id': '2',
+                        'user_id': '1',
+                        'source': 'backend',
+                        'event_type': 'log',
+                        'log': {
+                            'timestamp': mock.ANY,
+                            'message': 'OK: /',
+                        },
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend'
+                ),
+            ]
+
         )
         self.assertIsNotNone(post_mock.call_args[1]['json']['anonymous_id'])
 
@@ -135,6 +185,7 @@ class MiddlewareMiddleware(unittest.TestCase):
     def test_logging_error_without_traceback(self, post_mock) -> None:
         def view(*args, **kwargs):
             logger.error('SOME MSG')
+            return HttpResponse()
 
         self.middleware.get_response = view
 
@@ -142,15 +193,35 @@ class MiddlewareMiddleware(unittest.TestCase):
         self.middleware(request)
 
         post_mock.assert_called()
-        post_mock.assert_called_with(
-            headers={'Authorization': 'Basic 123'},
-            json={
-                'event_type': 'log', 'timestamp': mock.ANY,
-                'anonymous_id': '2', 'user_id': '1',
-                'source': 'backend',
-                'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
-            },
-            url='https://input.synchrolog.com/v1/track-backend',
+        post_mock.assert_has_calls(
+            [
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'event_type': 'log', 'timestamp': mock.ANY,
+                        'anonymous_id': '2', 'user_id': '1',
+                        'source': 'backend',
+                        'log': {'timestamp': mock.ANY, 'message': 'SOME MSG'},
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend',
+                ),
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'timestamp': mock.ANY,
+                        'anonymous_id': '2',
+                        'user_id': '1',
+                        'source': 'backend',
+                        'event_type': 'log',
+                        'log': {
+                            'timestamp': mock.ANY,
+                            'message': 'OK: /',
+                        },
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend'
+                ),
+            ]
+
         )
         self.assertIsNotNone(post_mock.call_args[1]['json']['anonymous_id'])
 
@@ -160,6 +231,7 @@ class MiddlewareMiddleware(unittest.TestCase):
     def test_logging_error_with_traceback(self, post_mock, tb_mock, format_tb_mock) -> None:
         def view(*args, **kwargs):
             logger.error('SOME MSG', exc_info=True)
+            return HttpResponse()
 
         self.middleware.get_response = view
 
@@ -167,19 +239,45 @@ class MiddlewareMiddleware(unittest.TestCase):
         self.middleware(request)
 
         post_mock.assert_called()
-        post_mock.assert_called_with(
-            headers={'Authorization': 'Basic 123'},
-            json={
-                'event_type': 'log',
-                'timestamp': mock.ANY,
-                'anonymous_id': '2', 'user_id': '1',
-                'source': 'backend',
-                'error': {
-                    'status': '500', 'description': 'SOME MSG', 'backtrace': 'TRACEBACK', 'ip_address': '127.0.0.1',
-                    'user_agent': None, 'file_name': __file__, 'line_number': '1', 'file': mock.ANY
-                },
-            },
-            url='https://input.synchrolog.com/v1/track-backend-error',
-        ),
+        post_mock.assert_has_calls(
+            [
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'event_type': 'error',
+                        'timestamp': mock.ANY,
+                        'anonymous_id': '2',
+                        'user_id': '1',
+                        'source': 'backend',
+                        'error': {
+                            'status': '500',
+                            'description': 'SOME MSG',
+                            'backtrace': 'TRACEBACK',
+                            'ip_address': '127.0.0.1',
+                            'user_agent': None,
+                            'file_name': __file__,
+                            'line_number': '1',
+                            'file': mock.ANY
+                        },
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend-error',
+                ),
+                call(
+                    headers={'Authorization': 'Basic 123'},
+                    json={
+                        'timestamp': mock.ANY,
+                        'anonymous_id': '2',
+                        'user_id': '1',
+                        'source': 'backend',
+                        'event_type': 'log',
+                        'log': {
+                            'timestamp': mock.ANY,
+                            'message': 'OK: /',
+                        },
+                    },
+                    url='https://input.synchrolog.com/v1/track-backend'
+                )
+            ],
+        )
 
         self.assertIsNotNone(post_mock.call_args[1]['json']['anonymous_id'])

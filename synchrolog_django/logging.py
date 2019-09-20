@@ -105,7 +105,7 @@ def _synchrolog_record_factory(record):
 
     anonymous_id = request.COOKIES.get(ANONYMOUS_KEY, _generate_uuid())
     request.COOKIES[RAW_ANONYMOUS_KEY] = anonymous_id
-    user_id = request.COOKIES.get(USER_KEY, '')
+    user_id = request.COOKIES.get(USER_KEY)
 
     timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
