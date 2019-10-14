@@ -15,7 +15,7 @@ MIDDLEWARE = [
     ...
 ]
 
-SYNCHROLOG_API_KEY = os.getenv('SYNCHROLOG_API_KEY')
+SYNCHROLOG_ACCESS_TOKEN = os.getenv('SYNCHROLOG_API_KEY')
 
 # Configure logging
 LOGGING = {
